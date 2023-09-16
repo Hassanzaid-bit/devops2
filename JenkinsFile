@@ -1,8 +1,6 @@
 pipeline {
     agent any
     stages {
-<<<<<<< HEAD
-=======
       stage("Connect SSH") {
             steps {
                 script {
@@ -20,7 +18,6 @@ pipeline {
                 }
             }
         }
->>>>>>> e6be49d (Hello world2)
         stage('Track Code Changes') {
             steps {              
                 script {
