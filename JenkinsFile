@@ -31,61 +31,27 @@ pipeline {
                     bat "pandoc build-diff.html -o ${pdfFile}"
 
                     // Read the converted PDF file
-                    def pdfContent = readFile(file: pdfFile).trim()
-
-                    // Send the PDF file to Slack
-                    slackSend (
-                        color: '#36a64f', // Set a color for your Slack message
-                        message: "HTML diff converted to PDF of ${env.JOB_NAME} #${env.BUILD_NUMBER}:",
-                        attachments: [
-                            [
-                                fallback: "PDF Diff",
-                                title: "PDF Diff",
-                                title_link: "file://${pdfFile}", // Link to the PDF file
-                                color: "good",
-                                text: "See the attached PDF diff",
-                            ]
-                        ]
-                    )
-
-                    // slackSend (
-                    //     color: '#36a64f', // Set a color for your Slack message
-                    //     message: "HTML diff of ${env.JOB_NAME} #${env.BUILD_NUMBER}:",
-                    //     attachments: [
-                    //         [
-                    //             fallback: "HTML Diff",
-                    //             text: "See the attached HTML diff",
-                    //             color: "good",
-                    //             fields: [
-                    //                 [
-                    //                     title: "HTML Diff",
-                    //                     value: htmlDiff, // Your HTML diff content here
-                    //                     short: false
-                    //                 ]
-                    //             ]
-                    //         ]
-                    //     ]
-                    // )                   
+                    def pdfContent = readFile(file: pdfFile).trim()                
                 }
             }
         }
     }
 
-    // post {
-    //     success {           
-    //         slackSend (
-    //             color: '#36a64f',              
-    //             message: "Build successful!\n\n Commit by ${getAuthorName()}.\n\nCommit Message: ${getCommitMessage()}"
-    //         )
-    //     }
+    post {
+        success {           
+            slackSend (
+                color: '#36a64f',              
+                message: "Build successful!\n\n Commit by ${getAuthorName()}.\n\nCommit Message: ${getCommitMessage()}"
+            )
+        }
     
-    //     failure {           
-    //         slackSend (
-    //             color: '#FF5733',
-    //             message: "Build failed!\n\n Commit by ${getAuthorName()}.\n\nCommit Message: ${getCommitMessage()}"
-    //         )
-    //     }
-    // }
+        failure {           
+            slackSend (
+                color: '#FF5733',
+                message: "Build failed!\n\n Commit by ${getAuthorName()}.\n\nCommit Message: ${getCommitMessage()}"
+            )
+        }
+    }
 }
 
 
