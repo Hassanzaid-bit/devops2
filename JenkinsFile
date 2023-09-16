@@ -1,0 +1,137 @@
+pipeline {
+    agent any
+    stages {
+<<<<<<< HEAD
+=======
+      stage("Connect SSH") {
+            steps {
+                script {
+                    // Define the SSH username, hostname or IP address, and SSH command
+                    def sshUsername = 'your-ssh-username'
+                    def sshHost = 'your-plesk-server.example.com'
+                    def sshPassword = 'your-ssh-password'  // Replace with your SSH password
+                    def sshCommand = 'ls -l /path/to/remote/directory'
+
+                    // Use plink to execute the SSH command
+                    def plinkCommand = "plink ${sshUsername}@${sshHost} -batch -pw ${sshPassword} \"${sshCommand}\""
+                    
+                    // Run the plink command using the bat step
+                    bat(plinkCommand)
+                }
+            }
+        }
+>>>>>>> e6be49d (Hello world2)
+        stage('Track Code Changes') {
+            steps {              
+                script {
+                    def publisher = LastChanges.getLastChangesPublisher "PREVIOUS_REVISION", "SIDE", "LINE", true, true, "", "", "", "", ""
+                    publisher.publishLastChanges()
+                    def htmlDiff = publisher.getHtmlDiff()
+                    writeFile file: 'build-diff.html', text: htmlDiff
+
+                    // Convert HTML to a PDF using Pandoc
+                    def pdfFile = 'build-diff.pdf'
+                    bat "pandoc build-diff.html -o ${pdfFile}"
+
+                    // Read the converted PDF file
+                    def pdfContent = readFile(file: pdfFile).trim()
+
+                    // Send the PDF file to Slack
+                    slackSend (
+                        color: '#36a64f', // Set a color for your Slack message
+                        message: "HTML diff converted to PDF of ${env.JOB_NAME} #${env.BUILD_NUMBER}:",
+                        attachments: [
+                            [
+                                fallback: "PDF Diff",
+                                title: "PDF Diff",
+                                title_link: "file://${pdfFile}", // Link to the PDF file
+                                color: "good",
+                                text: "See the attached PDF diff",
+                            ]
+                        ]
+                    )
+
+                    // slackSend (
+                    //     color: '#36a64f', // Set a color for your Slack message
+                    //     message: "HTML diff of ${env.JOB_NAME} #${env.BUILD_NUMBER}:",
+                    //     attachments: [
+                    //         [
+                    //             fallback: "HTML Diff",
+                    //             text: "See the attached HTML diff",
+                    //             color: "good",
+                    //             fields: [
+                    //                 [
+                    //                     title: "HTML Diff",
+                    //                     value: htmlDiff, // Your HTML diff content here
+                    //                     short: false
+                    //                 ]
+                    //             ]
+                    //         ]
+                    //     ]
+                    // )                   
+                }
+            }
+        }
+    }
+
+    // post {
+    //     success {           
+    //         slackSend (
+    //             color: '#36a64f',              
+    //             message: "Build successful!\n\n Commit by ${getAuthorName()}.\n\nCommit Message: ${getCommitMessage()}"
+    //         )
+    //     }
+    
+    //     failure {           
+    //         slackSend (
+    //             color: '#FF5733',
+    //             message: "Build failed!\n\n Commit by ${getAuthorName()}.\n\nCommit Message: ${getCommitMessage()}"
+    //         )
+    //     }
+    // }
+}
+
+
+@NonCPS
+List<String> getChangedFilesList(){
+    def changedFiles = []
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            changedFiles.addAll(entry.affectedPaths)
+        }
+    }
+    return changedFiles
+}
+
+@NonCPS
+String getGitcommitID(){
+    gitCommitID = " "
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            gitCommitID = entry.commitId
+        }
+    }
+    return gitCommitID
+}
+
+@NonCPS
+String getAuthorName(){
+    gitAuthorName = " "
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            gitAuthorName = entry.authorName
+        }
+    }
+    return gitAuthorName
+}
+
+@NonCPS
+String getCommitMessage(){
+    commitMessage = " "
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            commitMessage = entry.msg
+        }
+    }
+    return commitMessage
+}
