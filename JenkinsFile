@@ -4,16 +4,36 @@ pipeline {
         stage('SSH Connection') {
             steps {
                 script {
-                    // Define the SSH key credential ID
-                    def sshKeyCredentialId = 'SSH_KEY'
+                    // // Define the SSH key credential ID
+                    // def sshKeyCredentialId = 'SSH_KEY'
 
-                    // Start the SSH agent and load the SSH key
-                    sshagent([sshKeyCredentialId]) {
-                        // SSH commands or scripts that require authentication
-                        def sshCommand = "ls"
-                        def sshHost = "49.0.201.109"
-                        sh "ssh $SSH_KEY_USR@$sshHost \"$sshCommand\""
-                    }
+                    // // Start the SSH agent and load the SSH key
+                    // sshagent([sshKeyCredentialId]) {
+                    //     // SSH commands or scripts that require authentication
+                    //     def sshCommand = "ls"
+                    //     def sshHost = "49.0.201.109"
+                    //     sh "ssh $SSH_KEY_USR@$sshHost \"$sshCommand\""
+                    // }
+                    def remote = [:]
+                        remote.name = "node"
+                        remote.host = "49.0.201.109"
+                        remote.allowAnyHosts = true
+
+                        node {
+                            withCredentials([usernamePassword(credentialsId: 'SSH_KEY', passwordVariable: 'SSH_KEY_PSW', usernameVariable: 'SSH_KEY_USR')]) {
+                                remote.user = userName
+                                remote.password = password
+
+                                stage("SSH Steps Rocks!") {
+                                    writeFile file: 'test.sh', text: 'ls'
+                                    sshCommand remote: remote, command: 'for i in {1..5}; do echo -n \"Loop \$i \"; date ; sleep 1; done'
+                                    sshScript remote: remote, script: 'test.sh'
+                                    sshPut remote: remote, from: 'test.sh', into: '.'
+                                    sshGet remote: remote, from: 'test.sh', into: 'test_new.sh', override: true
+                                    sshRemove remote: remote, path: 'test.sh'
+                                }
+                            }
+                        }
                 }
             }
         }
