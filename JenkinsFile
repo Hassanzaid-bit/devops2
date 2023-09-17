@@ -20,7 +20,8 @@ pipeline {
                         remote.allowAnyHosts = true
 
                         node {
-                            withCredentials([usernamePassword(credentialsId: 'SSH_KEY', passwordVariable: 'SSH_KEY_PSW', usernameVariable: 'SSH_KEY_USR')]) {
+                            // withCredentials([usernamePassword(credentialsId: 'SSH_KEY', passwordVariable: 'SSH_KEY_PSW', usernameVariable: 'SSH_KEY_USR')]) {
+                            withCredentials([usernamePassword(SSH_KEY: 'SSH_KEY', password: 'SSH_KEY_PSW', userName: 'SSH_KEY_USR')]) {
                                 remote.user = userName
                                 remote.password = password
 
