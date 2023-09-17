@@ -13,7 +13,7 @@ pipeline {
                     remote.user = ssh_USR
                     remote.password = ssh_PSW
                     remote.allowAnyHosts = true
-                    def listFilesCommand = "cd demo.techbizafrica.com/devops2 && git status"
+                    def listFilesCommand = "cd demo.techbizafrica.com/devops2 && git pull --force"
                     sshCommand remote: remote, command: "$listFilesCommand"
                 }
             }
