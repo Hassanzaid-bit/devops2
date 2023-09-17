@@ -1,16 +1,20 @@
 pipeline {
     agent any
-    environment {
-        SSH_KEY = credentials('SSH_KEY')
-    }
     stages {
-        stage('Example') {
+        stage('SSH Connection') {
             steps {
-                echo SSH_KEY
-                // sh '''
-                //     # Use the SSH key for authentication in your commands
-                //     ssh-agent bash -c "ssh-add ${SSH_KEY} && your-command-here"
-                // '''
+                script {
+                    // Define the SSH key credential ID
+                    def sshKeyCredentialId = 'SSH_KEY'
+
+                    // Start the SSH agent and load the SSH key
+                    sshagent([sshKeyCredentialId]) {
+                        // SSH commands or scripts that require authentication
+                        def sshCommand = "ls"
+                        def sshHost = "49.0.201.109"
+                        sh "ssh $SSH_KEY_USR@$sshHost \"$sshCommand\""
+                    }
+                }
             }
         }
     }
