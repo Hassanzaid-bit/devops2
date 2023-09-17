@@ -54,42 +54,42 @@ pipeline {
 
 
 // Function to execute an SSH command and return the output as a string
-@NonCPS
-def executeCommand(session, command) {
-    def channel = session.openChannel('exec')
-    channel.setCommand(command)
+// @NonCPS
+// def executeCommand(session, command) {
+//     def channel = session.openChannel('exec')
+//     channel.setCommand(command)
 
-    // Get the output of the command
-    def outputStream = new ByteArrayOutputStream()
-    channel.setOutputStream(outputStream)
+//     // Get the output of the command
+//     def outputStream = new ByteArrayOutputStream()
+//     channel.setOutputStream(outputStream)
 
-    // Execute the command
-    channel.connect()
-    channel.disconnect()
+//     // Execute the command
+//     channel.connect()
+//     channel.disconnect()
 
-    // Return the command output as a string
-    return outputStream.toString()
-}
+//     // Return the command output as a string
+//     return outputStream.toString()
+// }
 
-// Function to execute a command on the remote server
-@NonCPS
-def executeCommand2(Session session, String command) {
-    def channel = session.openChannel('exec')
-    channel.setCommand(command)
+// // Function to execute a command on the remote server
+// @NonCPS
+// def executeCommand2(Session session, String command) {
+//     def channel = session.openChannel('exec')
+//     channel.setCommand(command)
 
-    // Get the output of the command
-    def input = new BufferedReader(new InputStreamReader(channel.getInputStream()))
-    channel.connect()
+//     // Get the output of the command
+//     def input = new BufferedReader(new InputStreamReader(channel.getInputStream()))
+//     channel.connect()
 
-    // Read and print the output line by line
-    String line
-    while ((line = input.readLine()) != null) {
-        println(line)
-    }
+//     // Read and print the output line by line
+//     String line
+//     while ((line = input.readLine()) != null) {
+//         println(line)
+//     }
 
-    // Disconnect the channel
-    channel.disconnect()
-}
+//     // Disconnect the channel
+//     channel.disconnect()
+// }
 
 @NonCPS
 List<String> getChangedFilesList(){
