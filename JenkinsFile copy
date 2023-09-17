@@ -1,0 +1,205 @@
+pipeline {
+    agent any
+    stages {
+     stage('SSH and Git Pull') {
+            steps {
+                script {
+                    // import com.cloudbees.plugins.credentials.Credentials
+                    // import com.cloudbees.plugins.credentials.CredentialsMatchers
+                    // import com.cloudbees.plugins.credentials.CredentialsProvider
+                    // import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials
+                    // import hudson.security.ACL
+                    // import jenkins.model.Jenkins
+                    // import org.jenkinsci.plugins.plaincredentials.StringCredentials
+
+
+                    // import com.cloudbees.plugins.credentials.CredentialsProvider
+                    // import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials
+                    // import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials
+                    // import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey
+                    // import hudson.plugins.sshslaves.SSHLauncher
+
+                    // import java.io.InputStream;
+                    // import com.jcraft.jsch.JSch
+                    // import com.jcraft.jsch.Session
+                    // import com.jcraft.jsch.ChannelExec;
+
+                  JenkinsFileenkins.model.Jenkins
+
+                    def credentialsId = 'SSH_KEY'
+                    def hostname = '49.0.201.109'
+                    def port = 22 
+                    def username = ""
+                    def password = ""
+
+                    //Find the credentials by ID or type
+                    def credentials1 = CredentialsProvider.lookupCredentials(
+                        Credentials.class,
+                        Jenkins.instance,
+                        ACL.SYSTEM,
+                        null
+                    )
+
+                    // Filter credentials by ID or type
+                    def filteredCredentials = CredentialsMatchers.filter(credentials1, CredentialsMatchers.withId(credentialsId))
+
+                    // Access the credentials (e.g., print username and password)
+                    filteredCredentials.each { credential ->
+                        if (credential instanceof StandardUsernamePasswordCredentials) {
+                            username = credential.username
+                            password = credential.password
+                        
+                        } else if (credential instanceof StringCredentials) {
+                            def secret = credential.secret.getPlainText()
+                            println("Secret: $secret")
+                        }
+                    }
+
+                    try {
+                        // Create a new SSH session
+                        def jsch = new JSch()
+                        def session = jsch.getSession(username, hostname, port)
+
+                        // Set password for authentication (you can also use key-based authentication)
+                        session.setPassword(Secret.toString(password))
+
+                        // Disable strict host key checking (not recommended for production)
+                        session.setConfig('StrictHostKeyChecking', 'no')
+
+                        // Connect to the SSH server
+                        session.connect()
+
+                        // Check if the connection is successful
+                        if (session.isConnected()) {
+                            println("SSH connection to $hostname is successful.")             
+                            def listFilesCommand = "cd demo.techbizafrica.com/devops2 && git pull"
+                            def files = executeCommand2(session, listFilesCommand)
+                                    
+                        } else {
+                            println("SSH connection to $hostname failed.")
+                        }   
+                        session.disconnect()
+                    } catch (Exception e) {
+                        println("Error: ${e.message}")
+                    }
+                }
+            }
+        }
+        stage('Track Code Changes') {
+            steps {              
+                script {
+                    def publisher = LastChanges.getLastChangesPublisher "PREVIOUS_REVISION", "SIDE", "LINE", true, true, "", "", "", "", ""
+                    publisher.publishLastChanges()
+                    def htmlDiff = publisher.getHtmlDiff()
+                    writeFile file: 'build-diff.html', text: htmlDiff
+
+                    // Convert HTML to a PDF using Pandoc
+                    def pdfFile = 'build-diff.pdf'
+                    bat "pandoc build-diff.html -o ${pdfFile}"
+
+                    // Read the converted PDF file
+                    def pdfContent = readFile(file: pdfFile).trim()                
+                }
+            }
+        }
+    }
+
+    post {
+        success {           
+            slackSend (
+                color: '#36a64f',              
+                message: "Build successful!\n\n Commit by ${getAuthorName()}.\n\nCommit Message: ${getCommitMessage()}"
+            )
+        }
+    
+        failure {           
+            slackSend (
+                color: '#FF5733',
+                message: "Build failed!\n\n Commit by ${getAuthorName()}.\n\nCommit Message: ${getCommitMessage()}"
+            )
+        }
+    }
+}
+
+
+// Function to execute an SSH command and return the output as a string
+@NonCPS
+def executeCommand(session, command) {
+    def channel = session.openChannel('exec')
+    channel.setCommand(command)
+
+    // Get the output of the command
+    def outputStream = new ByteArrayOutputStream()
+    channel.setOutputStream(outputStream)
+
+    // Execute the command
+    channel.connect()
+    channel.disconnect()
+
+    // Return the command output as a string
+    return outputStream.toString()
+}
+
+// Function to execute a command on the remote server
+@NonCPS
+def executeCommand2(Session session, String command) {
+    def channel = session.openChannel('exec')
+    channel.setCommand(command)
+
+    // Get the output of the command
+    def input = new BufferedReader(new InputStreamReader(channel.getInputStream()))
+    channel.connect()
+
+    // Read and print the output line by line
+    String line
+    while ((line = input.readLine()) != null) {
+        println(line)
+    }
+
+    // Disconnect the channel
+    channel.disconnect()
+}
+
+@NonCPS
+List<String> getChangedFilesList(){
+    def changedFiles = []
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            changedFiles.addAll(entry.affectedPaths)
+        }
+    }
+    return changedFiles
+}
+
+@NonCPS
+String getGitcommitID(){
+    gitCommitID = " "
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            gitCommitID = entry.commitId
+        }
+    }
+    return gitCommitID
+}
+
+@NonCPS
+String getAuthorName(){
+    gitAuthorName = " "
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            gitAuthorName = entry.authorName
+        }
+    }
+    return gitAuthorName
+}
+
+@NonCPS
+String getCommitMessage(){
+    commitMessage = " "
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            commitMessage = entry.msg
+        }
+    }
+    return commitMessage
+}
