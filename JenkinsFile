@@ -25,14 +25,7 @@ pipeline {
                     def publisher = LastChanges.getLastChangesPublisher "PREVIOUS_REVISION", "SIDE", "LINE", true, true, "", "", "", "", ""
                     publisher.publishLastChanges()
                     def htmlDiff = publisher.getHtmlDiff()
-                    writeFile file: 'build-diff.html', text: htmlDiff
-
-                    // Convert HTML to a PDF using Pandoc
-                    def pdfFile = 'build-diff.pdf'
-                    bat "pandoc build-diff.html -o ${pdfFile}"
-
-                    // Read the converted PDF file
-                    def pdfContent = readFile(file: pdfFile).trim()                
+                                   
                 }
             }
         }
@@ -55,44 +48,6 @@ pipeline {
     }
 }
 
-
-// Function to execute an SSH command and return the output as a string
-// @NonCPS
-// def executeCommand(session, command) {
-//     def channel = session.openChannel('exec')
-//     channel.setCommand(command)
-
-//     // Get the output of the command
-//     def outputStream = new ByteArrayOutputStream()
-//     channel.setOutputStream(outputStream)
-
-//     // Execute the command
-//     channel.connect()
-//     channel.disconnect()
-
-//     // Return the command output as a string
-//     return outputStream.toString()
-// }
-
-// // Function to execute a command on the remote server
-// @NonCPS
-// def executeCommand2(Session session, String command) {
-//     def channel = session.openChannel('exec')
-//     channel.setCommand(command)
-
-//     // Get the output of the command
-//     def input = new BufferedReader(new InputStreamReader(channel.getInputStream()))
-//     channel.connect()
-
-//     // Read and print the output line by line
-//     String line
-//     while ((line = input.readLine()) != null) {
-//         println(line)
-//     }
-
-//     // Disconnect the channel
-//     channel.disconnect()
-// }
 
 @NonCPS
 List<String> getChangedFilesList(){
