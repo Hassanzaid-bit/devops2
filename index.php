@@ -1,14 +1,3 @@
-<?php
-
-echo "122345343445";
-
-echo "hassan Zaidrfgdffsdsgg";
-
-
-echo "Hello world";
-
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -20,6 +9,7 @@ echo "Hello world";
 
 <body>
     <h1>Welcome to devops</h1>
+    <h1>Hakuna Matata</h1>
 </body>
 
 </html>
