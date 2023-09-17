@@ -1,5 +1,8 @@
 pipeline {
     agent any
+     environment {
+        ssh = credentials('SSH_KEY')
+    }
     stages {
         stage('Remote SSH') {
             steps {
