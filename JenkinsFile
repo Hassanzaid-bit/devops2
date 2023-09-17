@@ -1,42 +1,136 @@
 pipeline {
     agent any
     stages {
-        stage('SSH Connection') {
+        stage('Remote SSH') {
             steps {
                 script {
-                    // // Define the SSH key credential ID
-                    // def sshKeyCredentialId = 'SSH_KEY'
-
-                    // // Start the SSH agent and load the SSH key
-                    // sshagent([sshKeyCredentialId]) {
-                    //     // SSH commands or scripts that require authentication
-                    //     def sshCommand = "ls"
-                    //     def sshHost = "49.0.201.109"
-                    //     sh "ssh $SSH_KEY_USR@$sshHost \"$sshCommand\""
-                    // }
                     def remote = [:]
-                        remote.name = "node"
-                        remote.host = "49.0.201.109"
-                        remote.allowAnyHosts = true
+                    remote.name = '49.0.201.109'
+                    remote.host = '49.0.201.109'
+                    remote.user = ssh_USR
+                    remote.password = ssh_PSW
+                    remote.allowAnyHosts = true
+                    def listFilesCommand = "cd demo.techbizafrica.com/devops2 && git status"
+                    sshCommand remote: remote, command: "$listFilesCommand"
+                }
+            }
+        }
+        
+        stage('Track Code Changes') {
+            steps {              
+                script {
+                    def publisher = LastChanges.getLastChangesPublisher "PREVIOUS_REVISION", "SIDE", "LINE", true, true, "", "", "", "", ""
+                    publisher.publishLastChanges()
+                    def htmlDiff = publisher.getHtmlDiff()
+                    writeFile file: 'build-diff.html', text: htmlDiff
 
-                        node {
-                            // withCredentials([usernamePassword(credentialsId: 'SSH_KEY', passwordVariable: 'SSH_KEY_PSW', usernameVariable: 'SSH_KEY_USR')]) {
-                            withCredentials([usernamePassword(SSH_KEY: 'SSH_KEY', password: 'SSH_KEY_PSW', userName: 'SSH_KEY_USR')]) {
-                                remote.user = userName
-                                remote.password = password
+                    // Convert HTML to a PDF using Pandoc
+                    def pdfFile = 'build-diff.pdf'
+                    bat "pandoc build-diff.html -o ${pdfFile}"
 
-                                stage("SSH Steps Rocks!") {
-                                    writeFile file: 'test.sh', text: 'ls'
-                                    sshCommand remote: remote, command: 'for i in {1..5}; do echo -n \"Loop \$i \"; date ; sleep 1; done'
-                                    sshScript remote: remote, script: 'test.sh'
-                                    sshPut remote: remote, from: 'test.sh', into: '.'
-                                    sshGet remote: remote, from: 'test.sh', into: 'test_new.sh', override: true
-                                    sshRemove remote: remote, path: 'test.sh'
-                                }
-                            }
-                        }
+                    // Read the converted PDF file
+                    def pdfContent = readFile(file: pdfFile).trim()                
                 }
             }
         }
     }
+
+    post {
+        success {           
+            slackSend (
+                color: '#36a64f',              
+                message: "Build successful!\n\n Commit by ${getAuthorName()}.\n\nCommit Message: ${getCommitMessage()}"
+            )
+        }
+    
+        failure {           
+            slackSend (
+                color: '#FF5733',
+                message: "Build failed!\n\n Commit by ${getAuthorName()}.\n\nCommit Message: ${getCommitMessage()}"
+            )
+        }
+    }
+}
+
+
+// Function to execute an SSH command and return the output as a string
+@NonCPS
+def executeCommand(session, command) {
+    def channel = session.openChannel('exec')
+    channel.setCommand(command)
+
+    // Get the output of the command
+    def outputStream = new ByteArrayOutputStream()
+    channel.setOutputStream(outputStream)
+
+    // Execute the command
+    channel.connect()
+    channel.disconnect()
+
+    // Return the command output as a string
+    return outputStream.toString()
+}
+
+// Function to execute a command on the remote server
+@NonCPS
+def executeCommand2(Session session, String command) {
+    def channel = session.openChannel('exec')
+    channel.setCommand(command)
+
+    // Get the output of the command
+    def input = new BufferedReader(new InputStreamReader(channel.getInputStream()))
+    channel.connect()
+
+    // Read and print the output line by line
+    String line
+    while ((line = input.readLine()) != null) {
+        println(line)
+    }
+
+    // Disconnect the channel
+    channel.disconnect()
+}
+
+@NonCPS
+List<String> getChangedFilesList(){
+    def changedFiles = []
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            changedFiles.addAll(entry.affectedPaths)
+        }
+    }
+    return changedFiles
+}
+
+@NonCPS
+String getGitcommitID(){
+    gitCommitID = " "
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            gitCommitID = entry.commitId
+        }
+    }
+    return gitCommitID
+}
+
+@NonCPS
+String getAuthorName(){
+    gitAuthorName = " "
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            gitAuthorName = entry.authorName
+        }
+    }
+    return gitAuthorName
+}
+
+@NonCPS
+String getCommitMessage(){
+    commitMessage = " "
+    for ( changeLogSet in currentBuild.changeSets){
+        for (entry in changeLogSet.getItems()){
+            commitMessage = entry.msg
+        }
+    }
+    return commitMessage
 }

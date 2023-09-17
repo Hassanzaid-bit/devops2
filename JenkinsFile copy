@@ -1,90 +1,21 @@
 pipeline {
     agent any
     stages {
-     stage('SSH and Git Pull') {
+        stage('Remote SSH') {
             steps {
                 script {
-                    // import com.cloudbees.plugins.credentials.Credentials
-                    // import com.cloudbees.plugins.credentials.CredentialsMatchers
-                    // import com.cloudbees.plugins.credentials.CredentialsProvider
-                    // import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials
-                    // import hudson.security.ACL
-                    // import jenkins.model.Jenkins
-                    // import org.jenkinsci.plugins.plaincredentials.StringCredentials
-
-
-                    // import com.cloudbees.plugins.credentials.CredentialsProvider
-                    // import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials
-                    // import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials
-                    // import com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey
-                    // import hudson.plugins.sshslaves.SSHLauncher
-
-                    // import java.io.InputStream;
-                    // import com.jcraft.jsch.JSch
-                    // import com.jcraft.jsch.Session
-                    // import com.jcraft.jsch.ChannelExec;
-
-                  JenkinsFileenkins.model.Jenkins
-
-                    def credentialsId = 'SSH_KEY'
-                    def hostname = '49.0.201.109'
-                    def port = 22 
-                    def username = ""
-                    def password = ""
-
-                    //Find the credentials by ID or type
-                    def credentials1 = CredentialsProvider.lookupCredentials(
-                        Credentials.class,
-                        Jenkins.instance,
-                        ACL.SYSTEM,
-                        null
-                    )
-
-                    // Filter credentials by ID or type
-                    def filteredCredentials = CredentialsMatchers.filter(credentials1, CredentialsMatchers.withId(credentialsId))
-
-                    // Access the credentials (e.g., print username and password)
-                    filteredCredentials.each { credential ->
-                        if (credential instanceof StandardUsernamePasswordCredentials) {
-                            username = credential.username
-                            password = credential.password
-                        
-                        } else if (credential instanceof StringCredentials) {
-                            def secret = credential.secret.getPlainText()
-                            println("Secret: $secret")
-                        }
-                    }
-
-                    try {
-                        // Create a new SSH session
-                        def jsch = new JSch()
-                        def session = jsch.getSession(username, hostname, port)
-
-                        // Set password for authentication (you can also use key-based authentication)
-                        session.setPassword(Secret.toString(password))
-
-                        // Disable strict host key checking (not recommended for production)
-                        session.setConfig('StrictHostKeyChecking', 'no')
-
-                        // Connect to the SSH server
-                        session.connect()
-
-                        // Check if the connection is successful
-                        if (session.isConnected()) {
-                            println("SSH connection to $hostname is successful.")             
-                            def listFilesCommand = "cd demo.techbizafrica.com/devops2 && git pull"
-                            def files = executeCommand2(session, listFilesCommand)
-                                    
-                        } else {
-                            println("SSH connection to $hostname failed.")
-                        }   
-                        session.disconnect()
-                    } catch (Exception e) {
-                        println("Error: ${e.message}")
-                    }
+                    def remote = [:]
+                    remote.name = '49.0.201.109'
+                    remote.host = '49.0.201.109'
+                    remote.user = ssh_USR
+                    remote.password = ssh_PSW
+                    remote.allowAnyHosts = true
+                    def listFilesCommand = "cd demo.techbizafrica.com/devops2 && git status"
+                    sshCommand remote: remote, command: "$listFilesCommand"
                 }
             }
         }
+        
         stage('Track Code Changes') {
             steps {              
                 script {
